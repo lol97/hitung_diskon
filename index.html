@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hitung Diskon</title>
+
+    <link rel="stylesheet" href="assets/bootstrap-5.0.2-dist/css/bootstrap.min.css">
+    <script src="assets/bootstrap-5.0.2-dist/js/bootstrap.min.js"></script>
+    <script src="js/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <!-- identitas dan nominal umum -->
+        <table>
+            <tr>
+                <td>
+                    <h2>OVO / GOPAY</h2>
+                </td>
+                <td><input type="text"></td>
+            </tr>
+            <tr>
+                <td>Total harga sebelum fee</td>
+                <td><input type="number" name="price_before" id="price_before" value="0"></td>
+            </tr>
+            <tr>
+                <td>Total diskon</td>
+                <td><input type="number" name="total_diskon" id="total_diskon" value="0"></td>
+            </tr>
+            <tr>
+                <td>Fee / Biaya Lain</td>
+                <td><input type="number" name="fee" id="fee" value="0"></td>
+            </tr>
+            <tr>
+                <td>Total Peserta</td>
+                <td><input type="number" name="total_participants" id="total_participants" value="2" readonly="true">
+                </td>
+                <td><button id="btnAddRow" class="btn btn-sm btn btn-outline-success">Tambah Peserta</button></td>
+                <td><button id="btnRemoveChecked" class="btn btn-sm btn btn-danger work">Hapus yang dipilih <span
+                            class="cntrChecked"></span></button></td>
+                <td><button id="btnRemoveNonChecked" class="btn btn-sm btn btn-info work">Hanya yang dipilih <span
+                            class="cntrChecked"></span></button></td>
+            </tr>
+        </table>
+
+        <table id="main_content" class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Name</th>
+                    <th>Item</th>
+                    <th>Harga Dasar</th>
+                    <th>Persentase dari bayar</th>
+                    <th>Total diskon (parsial)</th>
+                    <th>Fee tambahan</th>
+                    <th>Total Bayar</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+        </table>
+    </div>
+    <script>
+        $(document).on('change', '.price_input', function (e) {
+            var parentTr = $(this).closest('tr');
+            var priceBef = $("#price_before").val();
+            var totalPeserta = $("#total_participants").val();
+            var totalDiskon = $("#total_diskon").val();
+            var fee = $("#fee").val();
+            var hargaDasar = $(this).val();
+
+            var percentage = parentTr.find('td .percentage_input');
+            var percentVal = (hargaDasar / priceBef * 100);
+            percentVal = (percentVal || 0).toFixed(2);
+            percentage.val(percentVal);
+
+            var partial = parentTr.find('td .parsial_input');
+            var partialVal = (percentVal/100 * totalDiskon);
+            partialVal = (partialVal || 0).toFixed(0);
+            partial.val(partialVal);
+
+            var feePer = parentTr.find('td .fee_input');
+            var feePerVal = (fee / totalPeserta);
+            feePerVal = (feePerVal || 0).toFixed(0);
+            feePer.val(feePerVal);
+
+            var totalPer = parentTr.find('td .total_input');
+            totalPer.val(partialVal * 1 + feePerVal * 1);
+            console.log("next");
+        });
+
+
+        var rowIndex = 0;
+
+        $(document).ready(function () {
+            generateTableBaseOnParticipants(
+                $("#main_content tbody"),
+                $("#total_participants").val()
+            );
+
+            $(".work").each(function () {
+                $(this).prop('disabled', true);
+            });
+
+            $('#main_content').keydown(function (e) {
+                var $table = $(this);
+                var $active = $('input:focus,select:focus', $table);
+                var $next = null;
+                var focusableQuery = 'input:visible,select:visible,textarea:visible';
+                var position = parseInt($active.closest('td').index()) + 1;
+
+                switch (e.keyCode) {
+                    case 37: // <Left>
+                        $next = $active.parent('td').prev().find(focusableQuery);
+                        break;
+                    case 38: // <Up>                    
+                        $next = $active
+                            .closest('tr')
+                            .prev()
+                            .find('td:nth-child(' + position + ')')
+                            .find(focusableQuery)
+                            ;
+
+                        break;
+                    case 39: // <Right>
+                        $next = $active.closest('td').next().find(focusableQuery);
+                        break;
+                    case 40: // <Down>
+                        $next = $active
+                            .closest('tr')
+                            .next()
+                            .find('td:nth-child(' + position + ')')
+                            .find(focusableQuery)
+                            ;
+                        break;
+                }
+                if ($next && $next.length) {
+                    $next.focus();
+                }
+            });
+        });
+
+        /*
+        * function for create row based on total participants
+        * @param tBody (selector tBody)
+        * @param total_participants (num > 0)
+        * 
+        * @throw message
+        */
+        function generateTableBaseOnParticipants(tBody, total_participants) {
+            try {
+                let numTotal = parseInt(total_participants);
+                if (numTotal < 1) {
+                    throw "value total_participants must greater than 1";
+                }
+                for (let i = 1; i <= numTotal; i++) {
+                    tBody
+                        .append($(`<tr id="row_${++rowIndex}"> class="row"`)
+                            .append($('<td>')
+                                .append('<input type="checkbox" class="check">')
+                            )
+                            .append($('<td>')
+                                .append('<input name="name" class="name_input">')
+                            )
+                            .append($('<td>')
+                                .append('<input name="item" class="item_input">')
+                            )
+                            .append($('<td>')
+                                .append('<input name="price" class="price_input" value="0">')
+                            )
+                            .append($('<td>')
+                                .append('<input name="percentage" class="percentage_input" readonly>')
+                            )
+                            .append($('<td>')
+                                .append('<input name="parsial" class="parsial_input" readonly>')
+                            )
+                            .append($('<td>')
+                                .append('<input name="fee" class="fee_input" readonly>')
+                            )
+                            .append($('<td>')
+                                .append('<input name="total" class="total_input" readonly>')
+                            )
+                            .append($('<td>')
+                                .append('<button class="btn btn-sm btn-outline-danger remove">remove</button')
+                            )
+                        )
+                }
+                invokeTotalParticipants();
+            } catch (e) {
+                alert(e);
+            }
+        }
+
+        function addRPeserta(tBody) {
+            tBody
+                .append($(`<tr id="row_${++rowIndex}"> class="row"`)
+                    .append($('<td>')
+                        .append('<input type="checkbox" class="check">')
+                    )
+                    .append($('<td>')
+                        .append('<input name="name" class="name_input">')
+                    )
+                    .append($('<td>')
+                        .append('<input name="item" class="item_input">')
+                    )
+                    .append($('<td>')
+                        .append('<input name="price" class="price_input" value="0">')
+                    )
+                    .append($('<td>')
+                        .append('<input name="percentage" class="percentage_input" readonly>')
+                    )
+                    .append($('<td>')
+                        .append('<input name="parsial" class="parsial_input" readonly>')
+                    )
+                    .append($('<td>')
+                        .append('<input name="fee" class="fee_input" readonly>')
+                    )
+                    .append($('<td>')
+                        .append('<input name="total" class="total_input" readonly>')
+                    )
+                    .append($('<td>')
+                        .append('<button class="btn btn-sm btn-outline-danger remove">remove</button')
+                    )
+                );
+            invokeTotalParticipants();
+        }
+
+        $("#btnAddRow").on("click", function () {
+            addRPeserta($("#main_content tbody"));
+            invokeTotalParticipants();
+        });
+
+        $("#main_content tbody").on("click", ".remove", invokeRemoveRow);
+
+        $("#main_content tbody").on("change", ".check", function () {
+            var checkeds = $(".check").filter(':checked');
+            $(".cntrChecked").text(checkeds.length);
+
+            if (checkeds.length > 0) {
+                $(".work").attr('disabled', false);
+            } else {
+                $(".work").attr('disabled', true);
+            }
+        });
+
+        $("#btnRemoveChecked").on("click", function () {
+            $(".check").filter(":checked").each(invokeRemoveRow);
+        });
+
+        $("#btnRemoveNonChecked").on("click", function () {
+            $(".check").not(":checked").each(invokeRemoveRow);
+        });
+
+        function invokeTotalParticipants() {
+            var len = $("#main_content tbody tr").length;
+            $("#total_participants").val(len);
+        }
+
+        function invokeRemoveRow() {
+            var nextRows = $(this).closest('tr').nextAll();
+
+            nextRows.each(function () {
+                var id = $(this).attr('id');
+                id = parseInt(id.split('_')[1]);
+
+                $(this).attr('id', `row_${id - 1}`);
+            });
+
+            $(this).closest('tr').remove();
+            rowIndex--;
+            invokeTotalParticipants();
+        }
+        // TODO : navigate with keyboard
+        // TODO : calculate initial percentage tomorrow
+    </script>
+</body>
+
+</html>
